@@ -5,8 +5,6 @@
 import pandas as pd
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from ripser import ripser
-from persim import plot_diagrams
 
 # get data and fill missing values of text
 mydata = pd.read_csv('data/sampled_bias.csv',encoding='latin')
@@ -33,14 +31,8 @@ gender_df = BERT_df[mydata['Bias_Type'] == 'gender']
 orientation_df = BERT_df[mydata['Bias_Type'] == 'orientation']
 religion_df = BERT_df[mydata['Bias_Type'] == 'religion']
 
-# compute persistence diagrams
-race_diag = ripser(race_df, maxdim = 2)['dgms']
-gender_diag = ripser(gender_df, maxdim = 2)['dgms']
-orientation_diag = ripser(orientation_df, maxdim = 2)['dgms']
-religion_diag = ripser(religion_df, maxdim = 2)['dgms']
-
-# visualize
-plot_diagrams(race_diag, show=True, title = 'Race')
-plot_diagrams(gender_diag, show=True, title = 'Gender')
-plot_diagrams(orientation_diag, show=True, title = 'Orientation')
-plot_diagrams(religion_diag, show=True, title = 'Religion')
+# save to data directory
+race_df.to_csv('data/race_df.csv')
+gender_df.to_csv('data/gender_df.csv')
+orientation_df.to_csv('data/orientation_df.csv')
+religion_df.to_csv('data/religion_df.csv')

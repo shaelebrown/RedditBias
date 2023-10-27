@@ -1,4 +1,4 @@
 venv
 venv/
-data/sampled_bias.csv
 dummy_script.py
+data/
