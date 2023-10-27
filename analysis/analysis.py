@@ -1,5 +1,6 @@
 
 # this scipt was based on code I recieved from Colleen
+# used to generate data for computing persistence diagrams
 
 # import modules
 import pandas as pd
