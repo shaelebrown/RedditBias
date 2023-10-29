@@ -2,3 +2,4 @@ venv
 venv/
 dummy_script.py
 data/
+analysis/*.rds
