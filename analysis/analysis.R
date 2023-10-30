@@ -33,6 +33,10 @@ orientation_df <- read.csv("../data/orientation_df.csv")
 orientation_df$X <- NULL
 religion_df <- read.csv("../data/religion_df.csv")
 religion_df$X <- NULL
+all_df <- do.call(rbind,list(race_df[sample(1:nrow(race_df),size = round(0.25*nrow(race_df))),],
+                             gender_df[sample(1:nrow(gender_df),size = round(0.25*nrow(gender_df))),],
+                             orientation_df[sample(1:nrow(orientation_df),size = round(0.25*nrow(orientation_df))),],
+                             religion_df[sample(1:nrow(religion_df),size = round(0.25*nrow(religion_df))),]))
 
 # compute persistence diagrams with boostrapping
 ripser <- import_ripser()
@@ -40,24 +44,40 @@ race_PH <- bootstrap_persistence_thresholds(race_df,FUN_diag = "PyH",FUN_boot = 
 gender_PH <- bootstrap_persistence_thresholds(gender_df,FUN_diag = "PyH",FUN_boot = "PyH",maxdim = 2,thresh = 1.3,ripser = ripser,num_samples = 100,return_subsetted = T,return_diag = T,alpha = 0.1)
 orientation_PH <- bootstrap_persistence_thresholds(orientation_df,FUN_diag = "PyH",FUN_boot = "PyH",maxdim = 2,thresh = 1.2,ripser = ripser,num_samples = 100,return_subsetted = T,return_diag = T,alpha = 0.1)
 religion_PH <- bootstrap_persistence_thresholds(religion_df,FUN_diag = "PyH",FUN_boot = "PyH",maxdim = 2,thresh = 1.2,ripser = ripser,num_samples = 100,return_subsetted = T,return_diag = T,alpha = 0.1)
+all_PH <- bootstrap_persistence_thresholds(all_df,FUN_diag = "PyH",FUN_boot = "PyH",maxdim = 2,thresh = 1.45,ripser = ripser,num_samples = 100,return_subsetted = T,return_diag = T,alpha = 0.1)
 
 # save files
 saveRDS(race_PH,"race_PH.rds")
 saveRDS(gender_PH,"gender_PH.rds")
 saveRDS(orientation_PH,"orientation_PH.rds")
 saveRDS(religion_PH,"religion_PH.rds")
+saveRDS(all_PH,"all_PH.rds")
 
-# plot diagrams with thresholds
-plot_diagram(D = race_PH$diag,title = "Race",thresholds = race_PH)
-plot_diagram(D = gender_PH$diag,title = "Gender",thresholds = gender_PH)
-plot_diagram(D = orientation_PH$diag,title = "Orientation",thresholds = orientation_PH)
-plot_diagram(D = religion_PH$diag,title = "Religion",thresholds = religion_PH)
+# load files
+race_PH <- readRDS("race_PH.rds")
+gender_PH <- readRDS("gender_PH.rds")
+orientation_PH <- readRDS("orientation_PH.rds")
+religion_PH <- readRDS("religion_PH.rds")
+all_PH <- readRDS("all_PH.rds")
+
+# plot diagrams with and without thresholds
+plot_diagram(D = race_PH$diag,title = "Race",max_radius = 1.3)
+plot_diagram(D = race_PH$diag,title = "Race with thresholds",thresholds = race_PH,max_radius = 1.3)
+plot_diagram(D = gender_PH$diag,title = "Gender",max_radius = 1.3)
+plot_diagram(D = gender_PH$diag,title = "Gender with thresholds",thresholds = gender_PH,max_radius = 1.3)
+plot_diagram(D = orientation_PH$diag,title = "Orientation",max_radius = 1.3)
+plot_diagram(D = orientation_PH$diag,title = "Orientation with thresholds",thresholds = orientation_PH,max_radius = 1.3)
+plot_diagram(D = religion_PH$diag,title = "Religion",max_radius = 1.3)
+plot_diagram(D = religion_PH$diag,title = "Religion with thresholds",thresholds = religion_PH,max_radius = 1.3)
+plot_diagram(D = all_PH$diag,title = "All data")
+plot_diagram(D = all_PH$diag,title = "All data with thresholds",thresholds = all_PH)
 
 # how many significant features existed in each dimension?
 table(race_PH$subsetted_diag$dimension)
 table(gender_PH$subsetted_diag$dimension)
 table(orientation_PH$subsetted_diag$dimension)
 table(religion_PH$subsetted_diag$dimension)
+table(all_PH$subsetted_diag$dimension)
 
 # one 2-sphere in race df and one loop in religion df
 # most clusters in orientation df then gender df
