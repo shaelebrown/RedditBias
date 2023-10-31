@@ -37,27 +37,19 @@ all_df <- do.call(rbind,list(race_df[sample(1:nrow(race_df),size = round(0.25*nr
                              gender_df[sample(1:nrow(gender_df),size = round(0.25*nrow(gender_df))),],
                              orientation_df[sample(1:nrow(orientation_df),size = round(0.25*nrow(orientation_df))),],
                              religion_df[sample(1:nrow(religion_df),size = round(0.25*nrow(religion_df))),]))
+all_df <- read.csv("../data/all_df.csv")
 
 # compute persistence diagrams with boostrapping
 ripser <- import_ripser()
 race_PH <- bootstrap_persistence_thresholds(race_df,FUN_diag = "PyH",FUN_boot = "PyH",maxdim = 2,thresh = 1.2,ripser = ripser,num_samples = 100,return_subsetted = T,return_diag = T,alpha = 0.1)
-gender_PH <- bootstrap_persistence_thresholds(gender_df,FUN_diag = "PyH",FUN_boot = "PyH",maxdim = 2,thresh = 1.3,ripser = ripser,num_samples = 100,return_subsetted = T,return_diag = T,alpha = 0.1)
-orientation_PH <- bootstrap_persistence_thresholds(orientation_df,FUN_diag = "PyH",FUN_boot = "PyH",maxdim = 2,thresh = 1.2,ripser = ripser,num_samples = 100,return_subsetted = T,return_diag = T,alpha = 0.1)
-religion_PH <- bootstrap_persistence_thresholds(religion_df,FUN_diag = "PyH",FUN_boot = "PyH",maxdim = 2,thresh = 1.2,ripser = ripser,num_samples = 100,return_subsetted = T,return_diag = T,alpha = 0.1)
-all_PH <- bootstrap_persistence_thresholds(all_df,FUN_diag = "PyH",FUN_boot = "PyH",maxdim = 2,thresh = 1.45,ripser = ripser,num_samples = 100,return_subsetted = T,return_diag = T,alpha = 0.1)
-
-# save files
-saveRDS(race_PH,"race_PH.rds")
-saveRDS(gender_PH,"gender_PH.rds")
-saveRDS(orientation_PH,"orientation_PH.rds")
-saveRDS(religion_PH,"religion_PH.rds")
-saveRDS(all_PH,"all_PH.rds")
-
-# load files
 race_PH <- readRDS("race_PH.rds")
+gender_PH <- bootstrap_persistence_thresholds(gender_df,FUN_diag = "PyH",FUN_boot = "PyH",maxdim = 2,thresh = 1.3,ripser = ripser,num_samples = 100,return_subsetted = T,return_diag = T,alpha = 0.1)
 gender_PH <- readRDS("gender_PH.rds")
+orientation_PH <- bootstrap_persistence_thresholds(orientation_df,FUN_diag = "PyH",FUN_boot = "PyH",maxdim = 2,thresh = 1.2,ripser = ripser,num_samples = 100,return_subsetted = T,return_diag = T,alpha = 0.1)
 orientation_PH <- readRDS("orientation_PH.rds")
+religion_PH <- bootstrap_persistence_thresholds(religion_df,FUN_diag = "PyH",FUN_boot = "PyH",maxdim = 2,thresh = 1.2,ripser = ripser,num_samples = 100,return_subsetted = T,return_diag = T,alpha = 0.1)
 religion_PH <- readRDS("religion_PH.rds")
+all_PH <- bootstrap_persistence_thresholds(all_df,FUN_diag = "PyH",FUN_boot = "PyH",maxdim = 2,thresh = 1.45,ripser = ripser,num_samples = 100,return_subsetted = T,return_diag = T,alpha = 0.1)
 all_PH <- readRDS("all_PH.rds")
 
 # plot diagrams with and without thresholds
@@ -81,98 +73,82 @@ table(all_PH$subsetted_diag$dimension)
 
 # one 2-sphere in race df and one loop in religion df
 # most clusters in orientation df then gender df
+# all data had two clusters and one loop, what were these features?
+D_all <- as.matrix(dist(all_df))
+all_reps <- TDA::ripsDiag(X = D_all,maxdimension = 1,maxscale = 1.45,dist = "arbitrary",library = "dionysus",location = T)
+saveRDS(all_reps,"all_reps.rds")
+all_reps <- readRDS("all_reps.rds")
+H0_death_1 <- all_PH$subsetted_diag$death[[1]]
+H0_death_2 <- all_PH$subsetted_diag$death[[2]]
+H1_birth <- all_PH$subsetted_diag$birth[[3]]
+H1_death <- all_PH$subsetted_diag$death[[3]]
+H0_ind_1 <- 144
+H0_ind_2 <- 142
+H1_ind <- 563
+H0_1 <- unique(as.vector(all_reps$cycleLocation[[H0_ind_1]]))
+H0_2 <- unique(as.vector(all_reps$cycleLocation[[H0_ind_2]]))
+H1 <- unique(as.vector(all_reps$cycleLocation[[H1_ind]]))
 
-# which diagrams are more similar to each other?
-# compute embeddings in each dimension and plot
-parallel_approx_distance_matrix <- function(diagrams,other_diagrams = NULL,dim = 0,sigma = 1,rho = 1e-3,num_workers = parallelly::availableCores(omit = 1)){
+# plot using VR graphs
+g <- vr_graphs(X = all_df,eps = c(0.99*H0_death_1,0.99*H0_death_2,H1_birth))
+biases <- c(rep("blue",round(0.25*nrow(race_df))),
+            rep("red",round(0.25*nrow(gender_df))),
+            rep("green",round(0.25*nrow(orientation_df))),
+            rep("yellow",round(0.25*nrow(religion_df))))
+# race is blue, gender is red, orientation is green, religion is yellow
+plot_vr_graph(g,eps = H1_birth,vertex_labels = F,component_of = H1[[1]],cols = biases,title = "Orientation loop") 
+# orientation loop, which was not considered significant just in the orientation dataset
+plot_vr_graph(g,eps = H1_birth,vertex_labels = F,cols = biases,title = "All data at loop scale") 
+# all data at the same scale
+plot_vr_graph(g,eps = 0.99*H0_death_1,vertex_labels = F,cols = biases,title = "All data at cluster death scale")
+# all groups are separable at this scale! but mostly gender
+# how separable are the classes by neighbors?
+edges = g$graphs[[1]]$graph
+neighborhood_selectivity <- unlist(lapply(X = g$vertices,FUN = function(X){
   
-  # create cluster
-  cl <- parallel::makeCluster(num_workers)
-  doParallel::registerDoParallel(cl)
+  X <- as.numeric(X)
+  neighbors <- as.numeric(unique(c(edges[which(edges[,1] == X),2L],edges[which(edges[,2] == X),1L])))
+  if(length(neighbors) == 0)
+  {
+    return(0)
+  }
+  bias <- biases[[X]]
+  neighbor_bias <- biases[neighbors]
+  return(length(which(neighbor_bias == bias))/length(neighbor_bias))
   
-  # calculate distances in parallel
-  # clusters are closed if there is an error
-  tryCatch(expr = {
-    
-    if(is.null(other_diagrams))
-    {
-      # not cross distance matrix, only need to compute the upper diagonal
-      # since the matrix is symmetric
-      d <- matrix(data = 0,nrow = length(diagrams),ncol = length(diagrams))
-      u <- which(upper.tri(d),arr.ind = T)
-      R <- lapply(X = 1:nrow(u),FUN = function(X){
-        
-        return(list(diagrams[[u[[X,1]]]],diagrams[[u[[X,2]]]]))
-        
-      })
-      
-      # remove diagrams to preserve memory
-      rm(diagrams)
-      
-      # calculate distances in parallel, export TDApplied to nodes
-      d_off_diag <- foreach::`%dopar%`(obj = foreach::foreach(r = R,.combine = c,.packages = c("TDApplied")),ex = {TDApplied::diagram_distance(D1 = r[[1]],D2 = r[[2]],dim = dim,distance = "fisher",sigma = sigma,rho = rho)})
-      
-      # store results in matrix
-      d[upper.tri(d)] <- d_off_diag
-      d[which(upper.tri(d),arr.ind = T)[,c("col","row")]] <- d_off_diag
-      diag(d) <- rep(0,nrow(d))
-    }else
-    {
-      # cross distance matrix, need to compute all entries
-      u <- expand.grid(1:length(other_diagrams),1:length(diagrams))
-      R <- lapply(X = 1:nrow(u),FUN = function(X){
-        
-        return(list(other_diagrams[[u[X,1]]],diagrams[[u[X,2]]]))
-        
-      })
-      
-      # remove diagrams and other_diagrams to preserve memory
-      rm(list = c("diagrams","other_diagrams"))
-      
-      # store distance calculations in matrix
-      d[as.matrix(u)] <- foreach::`%dopar%`(foreach::foreach(r = R,.combine = cbind,.packages = c("TDApplied")),ex = {TDApplied::diagram_distance(D1 = r[[1]],D2 = r[[2]],dim = dim,distance = "fisher",sigma = sigma,rho = rho)})
-      
-    }
-    
-  }, warning = function(w){warning(w)},
-  error = function(e){stop(e)},
-  finally = {
-    # close cluster
-    doParallel::stopImplicitCluster()
-    parallel::stopCluster(cl)
-    
-  })
+}))
+length(which(neighborhood_selectivity < 0.25))/length(neighborhood_selectivity) # about 0.4 percent
+length(which(neighborhood_selectivity < 0.5))/length(neighborhood_selectivity) # about 2 percent
+length(which(neighborhood_selectivity == 1))/length(neighborhood_selectivity) # about 28 percent
+# so accuracy of this geometric model would be about 99.6% on this data for majority vote
+# or 98% on 50% vote
+
+# what about in the remainder of the data?
+res <- lapply(X = list(race_df,gender_df,orientation_df,religion_df),FUN = function(X){
   
-  return(d)
+  df <- as.data.frame(t(setdiff(as.data.frame(t(X)),as.data.frame(t(all_df)))))
+  return(list(df,nrow(df)))
   
-}
-diags <- list(race_PH$diag,gender_PH$diag,orientation_PH$diag,religion_PH$diag)
-D0 <- parallel_approx_distance_matrix(diags,dim = 0,sigma = 0.01)
-D1 <- parallel_approx_distance_matrix(diags,dim = 1,sigma = 0.01)
-D2 <- parallel_approx_distance_matrix(diags,dim = 2,sigma = 0.01)
-emb0 <- diagram_mds(diags,D = D0,dim = 0,k = 2,distance = "fisher",sigma = 0.01,rho = 1e-3)
-emb1 <- diagram_mds(diags,D = D1,dim = 1,k = 2,distance = "fisher",sigma = 0.01,rho = 1e-3)
-emb2 <- diagram_mds(diags,D = D2,dim = 2,k = 2,distance = "fisher",sigma = 0.01,rho = 1e-3)
-labs <- c("Race","Gender","Orientation","Religion")
-plot(emb0[,1],emb0[,2],xlim = c(-0.4,0.4),ylim = c(-0.4,0.4),xlab = "Embedding dim 1",ylab = "Embedding dim 2",main = "H0",pch = 19)
-text(emb0[,1],emb0[,2],labels = labs,pos = 3)
-plot(emb1[,1],emb1[,2],xlim = c(-0.2,0.2),ylim = c(-0.2,0.2),xlab = "Embedding dim 1",ylab = "Embedding dim 2",main = "H1",pch = 19)
-text(emb1[,1],emb1[,2],labels = labs,pos = 3)
-plot(emb2[,1],emb2[,2],xlim = c(-0.15,0.15),ylim = c(-0.15,0.15),xlab = "Embedding dim 1",ylab = "Embedding dim 2",main = "H2",pch = 19)
-text(emb2[,1],emb2[,2],labels = labs,pos = 3)
-
-# highly fragmented spaces except for the religion space
-# let's plot a rips graph to see what's going on..
-birth <- religion_PH$subsetted_diag$birth[[nrow(religion_PH$subsetted_diag)]]
-death <- religion_PH$subsetted_diag$death[[nrow(religion_PH$subsetted_diag)]]
-diag_with_reps <- TDA::ripsDiag(as.matrix(dist(religion_df)),maxdimension = 1,dist = "arbitrary",maxscale = 1.2,location = T,library = "dionysus")
-rep_ind <- 553
-rep <- unique(as.vector(diag_with_reps$cycleLocation[[rep_ind]]))
-g <- rips_graphs(race_df,eps = c(birth))
-cols <- rep("blue",nrow(religion_df))
-cols[rep] <- "red"
-plot_rips_graph(g,eps = birth,plot_isolated_vertices = F,vertex_labels = F,component_of = rep[[1]],cols = cols)
-
-
-
-
+})
+test_df <- do.call(rbind,lapply(res,"[[",1)) # missing a couple rows due to rounding
+test_biases <- c(rep("blue",res[[1]][[2]]),rep("red",res[[2]][[2]]),rep("green",res[[3]][[2]]),rep("yellow",res[[4]][[2]]))
+g_test <- vr_graphs(X = test_df,eps = c(0.99*H0_death_1))
+edges_test = g_test$graphs[[1]]$graph
+neighborhood_selectivity_test <- unlist(lapply(X = 1:length(g_test$vertices),FUN = function(X){
+  
+  Y <- g_test$vertices[[X]]
+  neighbors <- unique(c(edges_test[which(edges_test[,1] == Y),2L],edges_test[which(edges_test[,2] == Y),1L]))
+  if(length(neighbors) == 0)
+  {
+    return(0)
+  }
+  neighbors <- match(neighbors,g_test$vertices)
+  bias <- test_biases[[X]]
+  neighbor_bias <- test_biases[neighbors]
+  return(length(which(neighbor_bias == bias))/length(neighbor_bias))
+  
+}))
+length(which(neighborhood_selectivity_test < 0.25))/length(neighborhood_selectivity_test) # about 0.3 percent
+length(which(neighborhood_selectivity_test < 0.5))/length(neighborhood_selectivity_test) # about 1.7 percent
+length(which(neighborhood_selectivity_test == 1))/length(neighborhood_selectivity_test) # about 20 percent
+# so about 99.7% accurate on test set by majority vote, or 98.3% on 50% vote.

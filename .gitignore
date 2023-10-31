@@ -3,3 +3,5 @@ venv/
 dummy_script.py
 data/
 analysis/*.rds
+.DS_Store
+all_df.csv
